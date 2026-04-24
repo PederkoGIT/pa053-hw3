@@ -4,13 +4,14 @@ import re
 
 app = Flask(__name__)
 
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36)'}
+
 def get_airport_temp(iata):
     try:
         iata_upper = iata.upper()
         ap_url = f"http://www.airport-data.com/api/ap_info.json?iata={iata_upper}"
         
         ap_res = requests.get(ap_url, headers=HEADERS, timeout=10)
-        
         ap_res.raise_for_status() 
         ap_data = ap_res.json()
         
@@ -27,15 +28,15 @@ def get_airport_temp(iata):
         return weather_data['current_weather']['temperature']
         
     except requests.exceptions.RequestException as e:
-        return f"DEBUG ERROR (Network/API): {str(e)}"
+        return f"DEBUG ERROR (Sieť/API): {str(e)}"
     except Exception as e:
-        return f"DEBUG ERROR (Other error): {str(e)}"
+        return f"DEBUG ERROR (Iná chyba): {str(e)}"
 
 def get_stock_price(ticker):
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}"
-        res = requests.get(url, headers=headers).json()
+        ticker_upper = ticker.upper()
+        url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker_upper}"
+        res = requests.get(url, headers=HEADERS, timeout=10).json()
         return res['chart']['result'][0]['meta']['regularMarketPrice']
     except Exception:
         return None
