@@ -5,30 +5,26 @@ import re
 app = Flask(__name__)
 
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36)'}
-OSM_HEADERS = {'User-Agent': 'homework3-script-muni/1.0 (test@example.com)'}
 
 def get_airport_temp(iata):
     try:
         iata_upper = iata.upper()
-        query = f"{iata_upper} airport"
-        osm_url = f"https://nominatim.openstreetmap.org/search?q={query}&format=json&limit=1"
+        ap_url = f"https://airport-data.com/api/ap_info.json?iata={iata_upper}"
         
-        osm_res = requests.get(osm_url, headers=OSM_HEADERS, timeout=10)
-        osm_res.raise_for_status()
-        osm_data = osm_res.json()
+        ap_res = requests.get(ap_url, headers=HEADERS, timeout=10)
+        ap_res.raise_for_status() 
+        ap_data = ap_res.json()
         
-        if not osm_data:
+        if 'lat' not in ap_data or 'lon' not in ap_data:
             return None
             
-        lat = osm_data[0]['lat']
-        lon = osm_data[0]['lon']
+        lat, lon = ap_data['lat'], ap_data['lon']
         
         weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
         weather_res = requests.get(weather_url, headers=HEADERS, timeout=10)
         weather_res.raise_for_status()
-        weather_data = weather_res.json()
         
-        return weather_data['current_weather']['temperature']
+        return weather_res.json()['current_weather']['temperature']
         
     except Exception:
         return None
