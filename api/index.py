@@ -6,10 +6,19 @@ app = Flask(__name__)
 
 def get_airport_temp(iata):
     try:
-        ap_res = requests.get(f"https://www.airport-data.com/api/ap_info.json?iata={iata}").json()
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        
+        ap_url = f"https://www.airport-data.com/api/ap_info.json?iata={iata}"
+        ap_res = requests.get(ap_url, headers=headers).json()
+        
+        if 'latitude' not in ap_res or 'longitude' not in ap_res:
+            return None
+            
         lat, lon = ap_res['latitude'], ap_res['longitude']
         
-        weather_res = requests.get(f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true").json()
+        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
+        weather_res = requests.get(weather_url, headers=headers).json()
+        
         return weather_res['current_weather']['temperature']
     except Exception:
         return None
