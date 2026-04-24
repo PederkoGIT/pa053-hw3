@@ -6,22 +6,30 @@ app = Flask(__name__)
 
 def get_airport_temp(iata):
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        iata_upper = iata.upper()
+        ap_url = f"http://www.airport-data.com/api/ap_info.json?iata={iata_upper}"
         
-        ap_url = f"https://www.airport-data.com/api/ap_info.json?iata={iata}"
-        ap_res = requests.get(ap_url, headers=headers).json()
+        ap_res = requests.get(ap_url, headers=HEADERS, timeout=10)
         
-        if 'latitude' not in ap_res or 'longitude' not in ap_res:
-            return None
+        ap_res.raise_for_status() 
+        ap_data = ap_res.json()
+        
+        if 'latitude' not in ap_data or 'longitude' not in ap_data:
+            return f"DEBUG ERROR: Chýbajú súradnice. Odpoveď API: {ap_data}"
             
-        lat, lon = ap_res['latitude'], ap_res['longitude']
+        lat, lon = ap_data['latitude'], ap_data['longitude']
         
         weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
-        weather_res = requests.get(weather_url, headers=headers).json()
+        weather_res = requests.get(weather_url, headers=HEADERS, timeout=10)
+        weather_res.raise_for_status()
+        weather_data = weather_res.json()
         
-        return weather_res['current_weather']['temperature']
-    except Exception:
-        return None
+        return weather_data['current_weather']['temperature']
+        
+    except requests.exceptions.RequestException as e:
+        return f"DEBUG ERROR (Network/API): {str(e)}"
+    except Exception as e:
+        return f"DEBUG ERROR (Other error): {str(e)}"
 
 def get_stock_price(ticker):
     try:
@@ -53,7 +61,10 @@ def api_handler(path):
         val = evaluate_expression(expr)
         
     if val is None:
-        return Response("undefined", status=400)
+        return Response("undefined", status=200, mimetype='text/plain')
+        
+    if isinstance(val, str) and val.startswith("DEBUG ERROR"):
+        return Response(val, status=200, mimetype='text/plain')
 
     accept_header = request.headers.get('Accept', '')
     if 'xml' in accept_header.lower():
