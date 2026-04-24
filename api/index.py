@@ -5,20 +5,23 @@ import re
 app = Flask(__name__)
 
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36)'}
+OSM_HEADERS = {'User-Agent': 'homework3-script-muni/1.0 (test@example.com)'}
 
 def get_airport_temp(iata):
     try:
         iata_upper = iata.upper()
-        ap_url = f"http://www.airport-data.com/api/ap_info.json?iata={iata_upper}"
+        query = f"{iata_upper} airport"
+        osm_url = f"https://nominatim.openstreetmap.org/search?q={query}&format=json&limit=1"
         
-        ap_res = requests.get(ap_url, headers=HEADERS, timeout=10)
-        ap_res.raise_for_status() 
-        ap_data = ap_res.json()
+        osm_res = requests.get(osm_url, headers=OSM_HEADERS, timeout=10)
+        osm_res.raise_for_status()
+        osm_data = osm_res.json()
         
-        if 'latitude' not in ap_data or 'longitude' not in ap_data:
-            return f"DEBUG ERROR: Chýbajú súradnice. Odpoveď API: {ap_data}"
+        if not osm_data:
+            return None
             
-        lat, lon = ap_data['latitude'], ap_data['longitude']
+        lat = osm_data[0]['lat']
+        lon = osm_data[0]['lon']
         
         weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
         weather_res = requests.get(weather_url, headers=HEADERS, timeout=10)
@@ -27,10 +30,8 @@ def get_airport_temp(iata):
         
         return weather_data['current_weather']['temperature']
         
-    except requests.exceptions.RequestException as e:
-        return f"DEBUG ERROR (Sieť/API): {str(e)}"
-    except Exception as e:
-        return f"DEBUG ERROR (Iná chyba): {str(e)}"
+    except Exception:
+        return None
 
 def get_stock_price(ticker):
     try:
@@ -63,9 +64,6 @@ def api_handler(path):
         
     if val is None:
         return Response("undefined", status=200, mimetype='text/plain')
-        
-    if isinstance(val, str) and val.startswith("DEBUG ERROR"):
-        return Response(val, status=200, mimetype='text/plain')
 
     accept_header = request.headers.get('Accept', '')
     if 'xml' in accept_header.lower():
