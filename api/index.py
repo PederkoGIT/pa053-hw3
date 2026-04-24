@@ -15,10 +15,11 @@ def get_airport_temp(iata):
         ap_res.raise_for_status() 
         ap_data = ap_res.json()
         
-        if 'lat' not in ap_data or 'lon' not in ap_data:
+        if 'latitude' not in ap_data or 'longitude' not in ap_data:
             return None
             
-        lat, lon = ap_data['lat'], ap_data['lon']
+        lat = ap_data['latitude']
+        lon = ap_data['longitude']
         
         weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
         weather_res = requests.get(weather_url, headers=HEADERS, timeout=10)
@@ -26,7 +27,8 @@ def get_airport_temp(iata):
         
         return weather_res.json()['current_weather']['temperature']
         
-    except Exception:
+    except Exception as e:
+        print(f"Error fetching airport temp: {e}") 
         return None
 
 def get_stock_price(ticker):
